@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>مسابقات في الرياضيات</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #ff7e5f, #feb47b);
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            width: 80%;
+            max-width: 800px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            text-align: center;
+        }
+        .header {
+            background: #0078d7;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            border-bottom: 5px solid #005a9c;
+        }
+        .timer {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+        .question-counter {
+            font-size: 18px;
+            margin: 5px 0;
+        }
+        .question {
+            padding: 20px;
+        }
+        .question img {
+            max-width: 100%;
+            height: auto;
+        }
+        .options {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .options li {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .options li img {
+            width: 150px;
+            height: auto;
+            border: 2px solid transparent;
+            border-radius: 8px;
+        }
+        .options li img:hover {
+            border-color: #0078d7;
+        }
+        .correct img {
+            border-color: #4caf50;
+        }
+        .wrong img {
+            border-color: #f44336;
+        }
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        .celebration h1 {
+            font-size: 50px;
+            color: #4caf50;
+        }
+        .results {
+            padding: 20px;
+        }
+        .restart {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background: #0078d7;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .restart:hover {
+            background: #005a9c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">مسابقات في الرياضيات</div>
+        <div class="timer" id="timer">الوقت المتبقي: 20 ثانية</div>
+        <div class="question-counter" id="question-counter">السؤال 1 من 4</div>
+        <div class="question" id="question">
+            <img src="images/question1.png" alt="Question">
+        </div>
+        <ul class="options" id="options"></ul>
+    </div>
+
+    <div class="celebration" id="celebration">
+        <h1>🎉 ممتاز أحسنت! 🎉</h1>
+    </div>
+
+    <div class="results" id="results" style="display: none;">
+        <h1>نتائج المسابقة</h1>
+        <p id="final-score">لقد أجبت على X من Y إجابة صحيحة.</p>
+    </div>
+
+    <audio id="successSound" src="sounds/success.mp3"></audio>
+    <audio id="errorSound" src="sounds/error.mp3"></audio>
+
+    <script>
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        const questions = shuffleArray([
+            {
+                questionImage: "images/question1.png",
+                options: [
+                    "images/answer1_q1.png",
+                    "images/answer2_q1.png",
+                    "images/answer3_q1.png",
+                    "images/answer4_q1.png"
+                ],
+                correctIndex: 1
+            },
+            {
+                questionImage: "images/question2.png",
+                options: [
+                    "images/answer1_q2.png",
+                    "images/answer2_q2.png",
+                    "images/answer3_q2.png",
+                    "images/answer4_q2.png"
+                ],
+                correctIndex: 2
+            },
+            {
+                questionImage: "images/question3.png",
+                options: [
+                    "images/answer1_q3.png",
+                    "images/answer2_q3.png",
+                    "images/answer3_q3.png",
+                    "images/answer4_q3.png"
+                ],
+                correctIndex: 2
+            },
+            {
+                questionImage: "images/question4.png",
+                options: [
+                    "images/answer1_q4.png",
+                    "images/answer2_q4.png",
+                    "images/answer3_q4.png",
+                    "images/answer4_q4.png"
+                ],
+                correctIndex: 3
+            },
+            {
+                questionImage: "images/question5.png",
+                options: [
+                    "images/answer1_q5.png",
+                    "images/answer2_q5.png",
+                    "images/answer3_q5.png",
+                    "images/answer4_q5.png"
+                ],
+                correctIndex: 0
+            }
+        ]);
+
+        let currentQuestion = 0;
+        let timer;
+        let score = 0;
+
+        function startTimer(duration) {
+            let timeRemaining = duration;
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = `الوقت المتبقي: ${timeRemaining} ثانية`;
+
+            timer = setInterval(() => {
+                timeRemaining--;
+                timerElement.textContent = `الوقت المتبقي: ${timeRemaining} ثانية`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timer);
+                    handleIncorrectAnswer();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            clearInterval(timer);
+            const questionElement = document.getElementById('question');
+            const optionsElement = document.getElementById('options');
+            const questionCounter = document.getElementById('question-counter');
+
+            const question = questions[currentQuestion];
+
+            // عشوائية ترتيب الخيارات
+            const shuffledOptions = shuffleArray([...question.options]);
+            const correctOption = question.options[question.correctIndex];
+            question.correctIndex = shuffledOptions.indexOf(correctOption);
+
+            questionElement.innerHTML = `<img src="${question.questionImage}" alt="Question">`;
+            optionsElement.innerHTML = '';
+
+            questionCounter.textContent = `السؤال ${currentQuestion + 1} من ${questions.length}`;
+
+            shuffledOptions.forEach((option, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<img src="${option}" alt="Option ${index + 1}">`;
+                li.onclick = () => checkAnswer(index === question.correctIndex);
+                optionsElement.appendChild(li);
+            });
+
+            startTimer(20);
+        }
+
+        function checkAnswer(isCorrect) {
+            clearInterval(timer);
+            if (isCorrect) {
+                score++;
+                showCelebration(true);
+                setTimeout(nextQuestion, 2000);
+            } else {
+                handleIncorrectAnswer();
+            }
+        }
+
+        function handleIncorrectAnswer() {
+            showCelebration(false);
+            setTimeout(nextQuestion, 2000);
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.querySelector('.container').style.display = 'none';
+            const resultsElement = document.getElementById('results');
+            const finalScore = document.getElementById('final-score');
+
+            finalScore.textContent = `لقد أجبت على ${score} من ${questions.length} إجابة صحيحة.`;
+            resultsElement.style.display = 'block';
+
+            setTimeout(restartQuiz, 5000);
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            document.querySelector('.container').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            loadQuestion();
+        }
+
+        function showCelebration(isCorrect) {
+            const celebration = document.getElementById('celebration');
+            const successSound = document.getElementById('successSound');
+            const errorSound = document.getElementById('errorSound');
+
+            celebration.style.display = 'flex';
+
+            if (isCorrect) {
+                successSound.play();
+            } else {
+                errorSound.play();
+            }
+
+            setTimeout(() => {
+                celebration.style.display = 'none';
+            }, 2000);
+        }
+
+        loadQuestion();
+    </script>
+</body>
+</html>
